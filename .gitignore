@@ -2,3 +2,4 @@ venv
 .idea
 *.psy
 __pycache__
+*.log
