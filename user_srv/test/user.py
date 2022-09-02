@@ -7,7 +7,7 @@ from user_srv.proto import user_pb2_grpc, user_pb2
 class UserTest:
 
     def __init__(self):
-        channel = grpc.insecure_channel("127.0.0.1:50052")
+        channel = grpc.insecure_channel("172.20.0.204:50052")
         self.stub = user_pb2_grpc.UserStub(channel)
 
     def user_list(self):
@@ -43,7 +43,7 @@ class UserTest:
 
 if __name__ == "__main__":
     user = UserTest()
-    # user.user_list()
+    user.user_list()
     user.get_user_by_id(2)
     # user.get_user_by_mobile('13501171570')
     # user.create_user("bobby","13621117278", "121212")
