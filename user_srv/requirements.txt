@@ -6,3 +6,4 @@ grpcio-tools
 protobuf
 cryptography
 loguru
+python-consul2
