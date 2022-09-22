@@ -96,5 +96,5 @@ def my_function(x, y, z):
 
 if __name__ == '__main__':
     # my_function(0,0,0)
-    settings.client.add_config_watcher(settings.NACOS["DataId"],settings.NACOS["DataId"],settings.update_cfg)
+    settings.client.add_config_watcher(settings.NACOS["DataId"],settings.NACOS["Group"],settings.update_cfg)
     serve()
