@@ -3,3 +3,4 @@ venv
 *.psy
 __pycache__
 *.log
+nacos-data
