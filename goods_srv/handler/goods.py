@@ -1,10 +1,11 @@
 import grpc
 from loguru import logger
 from goods_srv.proto import goods_pb2, goods_pb2_grpc
-from goods_srv.model.models import Goods, Category, Brands
+from goods_srv.model.models import Goods, Category, Brands, Banner
 from peewee import DoesNotExist
 from google.protobuf import empty_pb2
 import json
+
 
 def convert_model_to_message(goods):
     info_rsp = goods_pb2.GoodInfoResponse()
@@ -35,6 +36,7 @@ def convert_model_to_message(goods):
 
     return info_rsp
 
+
 def category_model_to_dict(category):
     re = {}
 
@@ -44,6 +46,7 @@ def category_model_to_dict(category):
     re["parent"] = category.parent_category_id
     re["is_tab"] = category.is_tab
     return re
+
 
 class GoodsServicer(goods_pb2_grpc.GoodsServicer):
 
@@ -284,3 +287,161 @@ class GoodsServicer(goods_pb2_grpc.GoodsServicer):
 
         category_list_response.jsonData = json.dumps(level1)
         return category_list_response
+
+    @logger.catch
+    def GetSubCategory(self, request: goods_pb2.CategoryListRequest, context):
+        category_list_rsp = goods_pb2.SubCategoryListResponse()
+
+        try:
+            category_info = Category.get(Category.id == request.id)
+            category_list_rsp.info.id = category_info.id
+            category_list_rsp.info.name = category_info.name
+            category_list_rsp.info.level = category_info.level
+            category_list_rsp.info.isTab = category_info.is_tab
+            if category_info.parent_category:
+                category_list_rsp.info.parentCategory = category_info.parent_category_id
+        except DoesNotExist:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details('记录不存在')
+            return category_list_rsp
+
+        categorys = Category.select().where(Category.parent_category == request.id)
+        category_list_rsp.total = categorys.count()
+        for category in categorys:
+            category_rsp = goods_pb2.CategoryInfoResponse()
+            category_rsp.id = category.id
+            category_rsp.name = category.name
+            # i don't think code below is correct. it is from mxshop owner.
+            # the parentCategory should not be category_info.parent_category_id, but category_info.id
+            # if category_info.parent_category:
+            category_rsp.info.parentCategory = category_info.id
+            category_rsp.level = category.level
+            category_rsp.isTab = category.is_tab
+
+            category_list_rsp.subCategorys.append(category_rsp)
+
+        return category_list_rsp
+
+    @logger.catch
+    def CreateCategory(self, request: goods_pb2.CategoryInfoRequest, context):
+        category_rsp = goods_pb2.CategoryInfoResponse()
+        try:
+            category = Category()
+            category.name = request.name
+            if request.level != 1:
+                category.parent_category_id = request.parentCategory
+            category.level = request.level
+            category.is_tab = request.isTab
+            category.save()
+
+            category_rsp.id = category.id
+            category_rsp.name = category.name
+            if category.parent_category:
+                category_rsp.parentCategory = category.parent_category_id
+            category_rsp.level = category.level
+            category_rsp.isTab = category.is_tab
+        except Exception as e:
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details('插入数据失败')
+            return category_rsp
+
+        return category_rsp
+
+    @logger.catch
+    def DeleteCategory(self, request: goods_pb2.DeleteCategoryRequest, context):
+        try:
+            category = Category.get(request.id)
+            category.delete_instance()
+            # TODO 删除Category下的商品
+            return empty_pb2.Empty()
+        except DoesNotExist:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details('记录不存在')
+            return empty_pb2.Empty()
+
+    @logger.catch
+    def UpdateCategory(self, request: goods_pb2.CategoryInfoRequest, context):
+        try:
+            category = Category.get(request.id)
+            if request.name:
+                category.name = request.name
+            if request.parentCategory:
+                category.parent_category_id = request.parentCategory
+            if request.level:
+                category.level = request.level
+            if request.isTab:
+                category.is_tab = request.isTab
+            category.save()
+            return empty_pb2.Empty()
+        except DoesNotExist:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details('记录不存在')
+            return empty_pb2.Empty()
+
+    # 轮播图
+    @logger.catch
+    def BannerList(self, request: empty_pb2.Empty, context):
+
+        rsp = goods_pb2.BannerListResponse()
+        banners = Banner.select()
+        rsp.total = banners.count()
+
+        for banner in banners:
+            banner_rsp = goods_pb2.BannerResponse()
+            banner_rsp.id = banner.id
+            banner_rsp.image = banner.image
+            banner_rsp.index = banner_rsp.index
+            banner_rsp.url = banner_rsp.url
+
+            rsp.data.append(banner_rsp)
+
+        return rsp
+
+    @logger.catch
+    def CreateBanner(self, request:goods_pb2.BannerRequest, context):
+        banner = Banner()
+
+        banner.image = request.images
+        banner.index = request.index
+        banner.url = banner.url
+        banner.save()
+
+        banner_rsp = goods_pb2.BannerResponse()
+        banner_rsp.id = banner.id
+        banner_rsp.image = banner.image
+        banner_rsp.url = banner.url
+        banner_rsp.index = banner.index
+
+        return banner_rsp
+
+    @logger.catch
+    def DeleteBanner(self, request: goods_pb2.BannerRequest, context):
+        try:
+            banner = Banner.get(request.id)
+            banner.delete_instance()
+
+            return empty_pb2.Empty()
+        except DoesNotExist:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details('记录不存在')
+            return empty_pb2.Empty()
+
+    @logger.catch
+    def UpdateBanner(self, request:goods_pb2.BannerRequest, context):
+
+        try:
+            banner = Banner.get(request.id)
+            if request.image:
+                banner.image = request.image
+            if request.url:
+                banner.url = request.url
+            if request.index:
+                banner.index = request.index
+
+            banner.save()
+            return empty_pb2.Empty()
+        except DoesNotExist:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details('记录不存在')
+            return empty_pb2.Empty()
+        
