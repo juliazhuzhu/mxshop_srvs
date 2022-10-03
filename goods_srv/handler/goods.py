@@ -398,7 +398,7 @@ class GoodsServicer(goods_pb2_grpc.GoodsServicer):
         return rsp
 
     @logger.catch
-    def CreateBanner(self, request:goods_pb2.BannerRequest, context):
+    def CreateBanner(self, request: goods_pb2.BannerRequest, context):
         banner = Banner()
 
         banner.image = request.images
@@ -427,7 +427,7 @@ class GoodsServicer(goods_pb2_grpc.GoodsServicer):
             return empty_pb2.Empty()
 
     @logger.catch
-    def UpdateBanner(self, request:goods_pb2.BannerRequest, context):
+    def UpdateBanner(self, request: goods_pb2.BannerRequest, context):
 
         try:
             banner = Banner.get(request.id)
@@ -444,4 +444,70 @@ class GoodsServicer(goods_pb2_grpc.GoodsServicer):
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details('记录不存在')
             return empty_pb2.Empty()
-        
+
+    # 品牌相关接口
+    @logger.catch
+    def BrandList(self, request: empty_pb2.Empty, context):
+        rsp = goods_pb2.BrandListResponse()
+        brands = Brands.select()
+
+        rsp.total = brands.count()
+        for brand in brands:
+            brand_rsp = goods_pb2.BrandInfoResponse()
+
+            brand_rsp.id = brand.id
+            brand_rsp.name = brand.name
+            brand_rsp.logo = brand.logo
+
+            rsp.data.append(brand_rsp)
+
+        return rsp
+
+    @logger.catch
+    def CreateBrand(self, request: goods_pb2.BrandRequest, context):
+        rsp = goods_pb2.BrandInfoResponse()
+        brands = Brands.select().where(Brands.name == request.name)
+        if brands:
+            context.set_code(grpc.StatusCode.ALREADY_EXISTS)
+            context.set_details('记录已存在')
+            return rsp
+
+        brand = Brands()
+        brand.name = request.name
+        brand.logo = request.logo
+
+        brand.save()
+
+        rsp.id = brand.id
+        rsp.name = brand.name
+        rsp.logo = brand.logo
+
+        return rsp
+
+    @logger.catch
+    def DeleteBrand(self, request: goods_pb2.BrandRequest, context):
+        try:
+            brand = Brands.get(request.id)
+            brand.delete_instance()
+
+            return empty_pb2.Empty()
+        except DoesNotExist:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details('记录不存在')
+            return empty_pb2.Empty()
+
+    @logger.catch
+    def UpdateBrand(self, request: goods_pb2.BrandRequest, context):
+        try:
+            brand= Brands.get(request.id)
+            if request.name:
+                brand.name = request.name
+            if request.logo:
+                brand.logo = request.logo
+
+            brand.save()
+            return empty_pb2.Empty()
+        except DoesNotExist:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details('记录不存在')
+            return empty_pb2.Empty()
