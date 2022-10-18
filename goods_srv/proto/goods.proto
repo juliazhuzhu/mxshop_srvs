@@ -188,7 +188,7 @@ message CreateGoodsInfo {
     bool shipFree = 12;
     repeated string images = 13;
     repeated string descImages = 14;
-    string goodsFrontImager = 15;
+    string goodsFrontImage = 15;
     bool isNew = 16;
     bool isHot = 17;
     bool onSale = 18;

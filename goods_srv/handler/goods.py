@@ -95,8 +95,9 @@ class GoodsServicer(goods_pb2_grpc.GoodsServicer):
             per_page_nums = request.pagePerNums
         if request.pages:
             start = per_page_nums * (request.pages - 1)
-        goods = goods.limit(per_page_nums).offset(start)
+
         rsp.total = goods.count()
+        goods = goods.limit(per_page_nums).offset(start)
         for good in goods:
             rsp_good = convert_model_to_message(good)
             # print(rsp_good)
