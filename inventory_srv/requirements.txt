@@ -1,0 +1,10 @@
+peewee
+pymysql
+passlib
+grpcio
+grpcio-tools
+protobuf
+cryptography
+loguru
+python-consul2
+nacos-sdk-python

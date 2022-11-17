@@ -4,13 +4,14 @@ from peewee import *
 from playhouse.pool import PooledMySQLDatabase
 from playhouse.shortcuts import ReconnectMixin
 from playhouse.mysql_ext import JSONField
+from goods_srv.settings import settings
 
 class ReconnectMysqlDatabase(ReconnectMixin, PooledMySQLDatabase):
     # pyrthon mro
     pass
 
 
-db = ReconnectMysqlDatabase("mxshop-srv-goods", host="172.20.0.204", port=3306, user="root", password="123456")
+# db = ReconnectMysqlDatabase("mxshop-srv-goods", host="172.20.0.204", port=3306, user="root", password="123456")
 
 
 class BaseModel(Model):
@@ -45,7 +46,7 @@ class BaseModel(Model):
         return super().select(*fields).where(cls.is_deleted == False)
 
     class Meta:
-        database = db
+        database = settings.DB
 
 
 class Category(BaseModel):
@@ -103,7 +104,8 @@ class Banner(BaseModel):
 
 
 if __name__ == "__main__":
-    db.create_tables([Category, Goods, Brands, GoodsCategoryBrand, Banner])
+
+    settings.DB.create_tables([Category, Goods, Brands, GoodsCategoryBrand, Banner])
     # c1 = Category(name="bobby1", level=1)
     # c2 = Category(name="bobby2", level=1)
     # c1.save()
