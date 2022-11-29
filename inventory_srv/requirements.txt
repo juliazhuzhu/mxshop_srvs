@@ -8,3 +8,4 @@ cryptography
 loguru
 python-consul2
 nacos-sdk-python
+python-redis-lock[django]

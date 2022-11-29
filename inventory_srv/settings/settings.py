@@ -3,7 +3,7 @@ from playhouse.shortcuts import ReconnectMixin
 import nacos
 import json
 from loguru import logger
-
+import redis
 
 ##to remove my sql gone away issue
 
@@ -44,6 +44,14 @@ CONSUL_PORT = data["consul"]["port"]
 # #服务相关的配置
 SERVICE_NAME = data["name"]
 SERVICE_TAGS = data["tags"]
+
+REDIS_HOST = data["redis"]["host"]
+REDIS_PORT = data["redis"]["port"]
+REDIS_DB = data["redis"]["db"]
+
+#配置一个连接池
+pool = redis.ConnectionPool(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+REDIS_CLIENT = redis.StrictRedis(connection_pool=pool)
 
 DB = ReconnectMysqlDatabase(data["mysql"]["db"], host=data["mysql"]["host"], port=data["mysql"]["port"],
                             user=data["mysql"]["user"], password=data["mysql"]["password"])

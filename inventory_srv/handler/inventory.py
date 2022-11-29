@@ -6,6 +6,7 @@ from peewee import DoesNotExist
 from inventory_srv.settings import settings
 from google.protobuf import empty_pb2
 import json
+from common.lock.py_redis_lock import Lock
 
 
 class InventoryServicer(inventory_pb2_grpc.InventoryServicer):
@@ -44,6 +45,9 @@ class InventoryServicer(inventory_pb2_grpc.InventoryServicer):
         with settings.DB.atomic() as txn:
             for item in request.goodsInfo:
                 #查询库存
+
+                lock = Lock(settings.REDIS_CLIENT, f"lock:goods_{item.goodsId}", auto_renewal=True, expire=10)
+                lock.acquire()
                 try:
                     goods_inv = Inventory.get(Inventory.goods == item.goodsId)
                 except DoesNotExist as e:
@@ -59,7 +63,7 @@ class InventoryServicer(inventory_pb2_grpc.InventoryServicer):
                     #TODO 这里会引起数据不一致 - 分布式锁
                     goods_inv.stocks -= item.num
                     goods_inv.save()
-
+                lock.release()
             return empty_pb2.Empty()
 
     @logger.catch
@@ -68,6 +72,8 @@ class InventoryServicer(inventory_pb2_grpc.InventoryServicer):
         with settings.DB.atomic() as txn:
             for item in request.goodsInfo:
                 #查询库存
+                lock = Lock(settings.REDIS_CLIENT, f"lock:goods_{item.goodsId}", auto_renewal=True, expire=10)
+                lock.acquire()
                 try:
                     goods_inv = Inventory.get(Inventory.goods == item.goodsId)
                 except DoesNotExist as e:
@@ -77,5 +83,5 @@ class InventoryServicer(inventory_pb2_grpc.InventoryServicer):
                 #TODO 这里会引起数据不一致 - 分布式锁
                 goods_inv.stocks += item.num
                 goods_inv.save()
-
+                lock.release()
             return empty_pb2.Empty()
