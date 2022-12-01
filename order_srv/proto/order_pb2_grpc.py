@@ -30,6 +30,11 @@ class OrderStub(object):
                 request_serializer=order__pb2.CartItemRequest.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                 )
+        self.DeleteCardItem = channel.unary_unary(
+                '/proto.Order/DeleteCardItem',
+                request_serializer=order__pb2.CartItemRequest.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                )
         self.CreateOrder = channel.unary_unary(
                 '/proto.Order/CreateOrder',
                 request_serializer=order__pb2.OrderRequest.SerializeToString,
@@ -43,7 +48,7 @@ class OrderStub(object):
         self.OrderDetail = channel.unary_unary(
                 '/proto.Order/OrderDetail',
                 request_serializer=order__pb2.OrderRequest.SerializeToString,
-                response_deserializer=order__pb2.OrderInfoResponse.FromString,
+                response_deserializer=order__pb2.OrderInfoDetailResponse.FromString,
                 )
         self.UpdateOrderStatus = channel.unary_unary(
                 '/proto.Order/UpdateOrderStatus',
@@ -72,6 +77,13 @@ class OrderServicer(object):
 
     def UpdateCartItem(self, request, context):
         """修改购物车条目信息
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteCardItem(self, request, context):
+        """删除购物车条目
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -123,6 +135,11 @@ def add_OrderServicer_to_server(servicer, server):
                     request_deserializer=order__pb2.CartItemRequest.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             ),
+            'DeleteCardItem': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteCardItem,
+                    request_deserializer=order__pb2.CartItemRequest.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
             'CreateOrder': grpc.unary_unary_rpc_method_handler(
                     servicer.CreateOrder,
                     request_deserializer=order__pb2.OrderRequest.FromString,
@@ -136,7 +153,7 @@ def add_OrderServicer_to_server(servicer, server):
             'OrderDetail': grpc.unary_unary_rpc_method_handler(
                     servicer.OrderDetail,
                     request_deserializer=order__pb2.OrderRequest.FromString,
-                    response_serializer=order__pb2.OrderInfoResponse.SerializeToString,
+                    response_serializer=order__pb2.OrderInfoDetailResponse.SerializeToString,
             ),
             'UpdateOrderStatus': grpc.unary_unary_rpc_method_handler(
                     servicer.UpdateOrderStatus,
@@ -205,6 +222,23 @@ class Order(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
+    def DeleteCardItem(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/proto.Order/DeleteCardItem',
+            order__pb2.CartItemRequest.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
     def CreateOrder(request,
             target,
             options=(),
@@ -251,7 +285,7 @@ class Order(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/proto.Order/OrderDetail',
             order__pb2.OrderRequest.SerializeToString,
-            order__pb2.OrderInfoResponse.FromString,
+            order__pb2.OrderInfoDetailResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
