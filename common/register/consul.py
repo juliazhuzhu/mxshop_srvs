@@ -48,6 +48,6 @@ class ConsulRegister(base.Register):
         }
         data = requests.get(url, params=params).json()
         if data:
-            service_info = random.choices(list(data.values()))
+            service_info = random.choice(list(data.values()))
             return service_info["Address"], service_info["Port"]
         return None, None

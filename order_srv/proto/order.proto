@@ -42,7 +42,7 @@ message CartItemRequest {
 
 message OrderRequest {
     int32 id = 1;
-    int32 userid = 2;
+    int32 userId = 2;
     string address = 3;
     string mobile = 4;
     string name = 5;
@@ -52,7 +52,7 @@ message OrderRequest {
 
 message OrderInfoResponse {
     int32 id = 1;
-    int32 userid = 2;
+    int32 userId = 2;
     string orderSn = 3;
     string payType = 4;
     string status = 5;

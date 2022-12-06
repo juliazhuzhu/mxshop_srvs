@@ -55,6 +55,6 @@ class GoodsTest:
 if __name__ == "__main__":
     goods_test = GoodsTest()
     # goods_test.goods_list()
-    # goods_test.batch_get()
-    #goods_test.get_detail(421)
-    goods_test.category_list()
+    goods_test.batch_get()
+    # goods_test.get_detail(421)
+    # goods_test.category_list()

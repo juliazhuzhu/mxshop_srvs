@@ -61,7 +61,7 @@ def serve():
     logger.add("logs/order_srv_{time:YYYY-MM-DD_HH:mm:ss}.log", rotation="10 MB")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     # 注册商品服务
-    order_pb2_grpc.add_OrderServicer_to_server(OrderServicer,server)
+    order_pb2_grpc.add_OrderServicer_to_server(OrderServicer(),server)
 
     # 注册健康检查
     health_pb2_grpc.add_HealthServicer_to_server(health.HealthServicer(), server)

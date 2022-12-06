@@ -1,23 +1,26 @@
 ﻿# -*-coding:utf-8-*-
-from order_srv.proto import order_pb2_grpc
+from order_srv.proto import order_pb2_grpc, order_pb2
 from loguru import logger
 from order_srv.model.models import ShoppingCart, OrderInfo, OrderGoods
-from order_srv.proto import order_pb2
 from order_srv.proto import goods_pb2, goods_pb2_grpc
 from peewee import DoesNotExist
 import grpc
 from google.protobuf import empty_pb2
 from common.register import consul
 from order_srv.settings import settings
-from order_srv.proto import  inventory_pb2, inventory_pb2_grpc
+from order_srv.proto import inventory_pb2, inventory_pb2_grpc
 import time
+
+
 def generate_order_sn(userid):
     from random import Random
-    order_sn = f'{time.strftime("%Y%m%d%H%M%S")}{userid}{Random().randint(10,99)}'
+    order_sn = f'{time.strftime("%Y%m%d%H%M%S")}{userid}{Random().randint(10, 99)}'
     return order_sn
+
+
 class OrderServicer(order_pb2_grpc.OrderServicer):
     @logger.catch
-    def CartItemList(self, request, context):
+    def CartItemList(self, request: order_pb2.UserInfo, context):
         # 获取用户的购物车信息
         items = ShoppingCart.select().where(ShoppingCart.user == request.id)
         rsp = order_pb2.CartItemListResponse(total=items.count())
@@ -35,7 +38,7 @@ class OrderServicer(order_pb2_grpc.OrderServicer):
         return rsp
 
     @logger.catch
-    def CreateCartItem(self, request, context):
+    def CreateCartItem(self, request: order_pb2.CartItemRequest, context):
         # 添加商品到购物车
 
         existed_items = ShoppingCart.select().where(ShoppingCart.goods == request.goodsId,
@@ -67,6 +70,7 @@ class OrderServicer(order_pb2_grpc.OrderServicer):
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details("购物车记录不存在")
             return empty_pb2.Empty()
+
 
     @logger.catch
     def DeleteCardItem(self, request, context):
@@ -171,7 +175,8 @@ class OrderServicer(order_pb2_grpc.OrderServicer):
             order_amount = 0
             goods_sel_info = []
 
-            for cart_item in ShoppingCart.select().where(ShoppingCart.user == request.userId, ShoppingCart.checked == True):
+            for cart_item in ShoppingCart.select().where(ShoppingCart.user == request.userId,
+                                                         ShoppingCart.checked == True):
                 goods_ids.append(cart_item.goods)
                 goods_nums[cart_item.goods] = cart_item.nums
 
@@ -180,7 +185,7 @@ class OrderServicer(order_pb2_grpc.OrderServicer):
                 context.set_details("没有选中结算的商品")
                 return order_pb2.OrderInfoResponse()
 
-            #查询商品信息
+            # 查询商品信息
             register = consul.ConsulRegister(settings.CONSUL_HOST, settings.CONSUL_PORT)
             goods_srv_host, goods_srv_port = register.get_host_port(f'Service == "{settings.GOODS_SRV_NAME}"')
             if not goods_srv_host:
@@ -191,13 +196,12 @@ class OrderServicer(order_pb2_grpc.OrderServicer):
             goods_channel = grpc.insecure_channel(f"{goods_srv_host}:{goods_srv_port}")
             goods_stub = goods_pb2_grpc.GoodsStub(goods_channel)
 
-
-            #批量获取商品信息
+            # 批量获取商品信息
             try:
                 goods_info_rsp = goods_stub.BatchGetGoods(goods_pb2.BatchGoodsIdInfo(id=goods_ids))
             except grpc.RpcError as e:
                 context.set_code(grpc.StatusCode.INTERNAL)
-                context.set_details("商品服务不可用:{str(e)}")
+                context.set_details(f"商品服务不可用:{str(e)}")
                 return order_pb2.OrderInfoResponse()
 
             for goods_info in goods_info_rsp.data:
@@ -208,8 +212,7 @@ class OrderServicer(order_pb2_grpc.OrderServicer):
                 order_goods_list.append(order_goods)
                 goods_sel_info.append(inventory_pb2.GoodsInvInfo(goodsId=goods_info.id, num=goods_nums[goods_info.id]))
 
-
-            #扣减库存
+            # 扣减库存
             inv_srv_host, inv_srv_port = register.get_host_port(f'Service == "{settings.INVENTORY_SRV_NAME}"')
             if not inv_srv_host:
                 context.set_code(grpc.StatusCode.INTERNAL)
@@ -220,14 +223,13 @@ class OrderServicer(order_pb2_grpc.OrderServicer):
             inv_stub = inventory_pb2_grpc.InventoryStub(inv_channel)
 
             try:
-                inv_stub.Sell(inventory_pb2.SellInfo(goods_info=goods_sel_info))
+                inv_stub.Sell(inventory_pb2.SellInfo(goodsInfo=goods_sel_info))
             except grpc.RpcError as e:
                 context.set_code(grpc.StatusCode.INTERNAL)
-                context.set_details("库存服务不可用:{str(e)}")
+                context.set_details(f"库存服务不可用:{str(e)}")
                 return order_pb2.OrderInfoResponse()
 
-
-            #创建订单
+            # 创建订单
             try:
                 order = OrderInfo()
                 order.order_sn = generate_order_sn(request.userId)
@@ -236,19 +238,18 @@ class OrderServicer(order_pb2_grpc.OrderServicer):
                 order.signer_name = request.name
                 order.singer_mobile = request.mobile
                 order.post = request.post
+                order.user = request.userId
                 order.save()
 
                 for order__goods in order_goods_list:
                     order__goods.order = order.id
                 OrderGoods.bulk_create(order_goods_list)
 
-
-                #删除购物车记录
-                ShoppingCart.delete().where(ShoppingCart.user == request.userId, ShoppingCart.checked == True)
+                # 删除购物车记录
+                ShoppingCart.delete().where(ShoppingCart.user == request.userId, ShoppingCart.checked == True).execute()
             except Exception as e:
                 txn.rollback()
                 context.set_code(grpc.StatusCode.INTERNAL)
-                context.set_details("订单创建失败:{str(e)}")
+                context.set_details(f"订单创建失败:{str(e)}")
                 return order_pb2.OrderInfoResponse()
-            return order_pb2.OrderInfoResponse(id=order.id,orderSn=order.order_sn,total=order.order_mount)
-
+            return order_pb2.OrderInfoResponse(id=order.id, orderSn=order.order_sn, total=order.order_mount)

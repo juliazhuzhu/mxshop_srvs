@@ -2,7 +2,7 @@
     "name":"goods-srv",
     "tags" : ["imoc","mx"],
     "mysql":{
-        "db":"mxshop_srv_goods",
+        "db":"mxshop-srv-goods",
         "host":"172.20.0.204",
         "port":3306,
         "user":"root",

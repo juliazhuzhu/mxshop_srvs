@@ -44,7 +44,7 @@ def serve():
     parser.add_argument('--ip',
                         nargs="?",
                         type=str,
-                        default="127.0.0.1",
+                        default="172.20.0.245",
                         help="binding ip")
     parser.add_argument('--port',
                         nargs="?",

@@ -108,9 +108,12 @@ class GoodsServicer(goods_pb2_grpc.GoodsServicer):
     @logger.catch
     def BatchGetGoods(self, request: goods_pb2.BatchGoodsIdInfo, context):
         # 批量获取商品详情，订单新建的时候可以试用
+        print(request.id)
         rsp = goods_pb2.GoodsListResponse()
-        goods = Goods.select().where(Goods.id.in_(request.id))
-
+        ids = []
+        for _id in request.id:
+            ids.append(_id)
+        goods = Goods.select().where(Goods.id.in_(ids))
         rsp.total = goods.count()
         for good in goods:
             rsp_good = convert_model_to_message(good)

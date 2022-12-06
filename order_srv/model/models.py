@@ -47,7 +47,7 @@ class BaseModel(Model):
         return super().select(*fields).where(cls.is_deleted == False)
 
     class Meta:
-        database = settings.db
+        database = settings.DB
 
 # class Stock(BaseModel):
 #     #仓库表
@@ -77,12 +77,12 @@ class OrderInfo(BaseModel):
     pay_type = CharField(choices=PAY_TYPE, default="alipay", max_length=30, verbose_name="支付方式")
     status = CharField(choices=ORDER_STATUS, default="WAIT_BUYER_PAY", max_length=30, verbose_name="订单状态")
     trade_no = CharField(max_length=100, unique=True, null=True, verbose_name="交易号")
-    order_mount = CharField(default=0.0, verbose_name="订单金额")
+    order_mount = DecimalField(default=0.0, verbose_name="订单金额")
     pay_time = DateTimeField(null=True, verbose_name="支付时间")
 
     address = CharField(max_length=100, default="", verbose_name="收货地址")
     signer_name = CharField(max_length=20, default="", verbose_name="签收人")
-    singer_mobile = CharField(max_length=11, verbose_name="联系电话")
+    signer_mobile = CharField(max_length=11, verbose_name="联系电话")
     post = CharField(max_length=200, default="", verbose_name="留言")
 
 
@@ -98,7 +98,7 @@ class OrderGoods(BaseModel):
 
 if __name__ == "__main__":
 
-    db.create_tables([ShoppingCart,OrderInfo,OrderGoods])
+    settings.DB.create_tables([ShoppingCart,OrderInfo,OrderGoods])
     # c1 = Category(name="bobby1", level=1)
     # c2 = Category(name="bobby2", level=1)
     # c1.save()
