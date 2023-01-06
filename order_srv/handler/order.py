@@ -60,7 +60,7 @@ class OrderServicer(order_pb2_grpc.OrderServicer):
     def UpdateCartItem(self, request, context):
         # 更新购物车条目-数量和选中状态
         try:
-            item = ShoppingCart.get(ShoppingCart.id == request.id)
+            item = ShoppingCart.get(ShoppingCart.user == request.userId, ShoppingCart.goods == request.goodsId)
             item.checked = request.checked
             if request.nums > 0:
                 item.nums = request.nums
@@ -76,7 +76,7 @@ class OrderServicer(order_pb2_grpc.OrderServicer):
     def DeleteCardItem(self, request, context):
         # 删除购物车条目
         try:
-            item = ShoppingCart.get(ShoppingCart.id == request.id)
+            item = ShoppingCart.get(ShoppingCart.user == request.userId, ShoppingCart.goods == request.goodsId)
             item.delete_instance()
             return empty_pb2.Empty()
         except DoesNotExist as e:
@@ -111,6 +111,7 @@ class OrderServicer(order_pb2_grpc.OrderServicer):
             tmp_rsp.address = order.address
             tmp_rsp.name = order.signer_name
             tmp_rsp.mobile = order.signer_mobile
+            tmp_rsp.addTime = order.add_time.strftime('%Y-%m-%d %H:%M:%S')
 
             rsp.data.append(tmp_rsp)
         return rsp
@@ -120,7 +121,10 @@ class OrderServicer(order_pb2_grpc.OrderServicer):
         # 订单详情
         rsp = order_pb2.OrderInfoDetailResponse()
         try:
-            order = OrderInfo.get(OrderInfo.id == request.id)
+            if request.userId:
+                order = OrderInfo.get(OrderInfo.id == request.id, OrderInfo.user==request.userId)
+            else:
+                order = OrderInfo.get(OrderInfo.id == request.id, OrderInfo.user == request.userId)
 
             rsp.orderInfo.id = order.id
             rsp.orderInfo.userId = order.user
